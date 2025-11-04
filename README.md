@@ -25,6 +25,6 @@ Replication code for the empirical application is available in both R and python
 
 Current version: 0.1.0 (pre-release)
  
-This package is in the late stages of development, but has not undergone extensive testing. While I believe the implementation is correct, bugs may exist. Use with caution and please report any issues!
+This package is in the late stages of development, but has not undergone extensive testing. While I believe the implementation is correct, bugs may exist. Use with caution and please report any issues if you find any, you can email me at stuart.lane@bristol.ac.uk
 
 
