@@ -5,9 +5,6 @@ import sys
 import os
 
 from application_utils import *
-
-# Add the parent directory to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lambda_class_functions import *
 
 def ensure_package(pkg_name):
