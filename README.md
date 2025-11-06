@@ -1,7 +1,7 @@
 # lambda_class
 The `lambda_class` package provides facilities for lambda class estimation and inference in fuzzy regression discontinuity (FRD) designs, currently available in R and python. The theory for this class is found in:
 
-Lane (2025). The moment is here: a generalised class of estimators for fuzzy regression discontinuity designs. Working paper.
+Lane (2025). The moment is here: a generalised class of estimators for fuzzy regression discontinuity designs. Working paper. https://arxiv.org/abs/2511.03424
 
 ## Installation and use
 
