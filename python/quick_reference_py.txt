@@ -46,7 +46,7 @@ RECOMMENDED SETTINGS:
   ✓ Use robust = TRUE if heteroskedasticity suspected
 
 EXAMPLE:
-  result <- lambda_class(
+  result = lambda_class(
               Y = outcomes, 
               D = treatment, 
               X = score, 
