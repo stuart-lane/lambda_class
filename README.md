@@ -1,5 +1,5 @@
-# lambda_class
-The `lambda_class` functions provide facilities for lambda class estimation and inference in fuzzy regression discontinuity (FRD) designs, currently available in R and python. The theory for this class is found in:
+# LambdaFRD
+The `lambdaFRD` functions provide facilities for lambda class estimation and inference in fuzzy regression discontinuity (FRD) designs, currently available in R and python. The theory for this class is found in:
 
 Lane (2025). The moment is here: a generalised class of estimators for fuzzy regression discontinuity designs. Working paper. https://arxiv.org/abs/2511.03424
 
@@ -11,12 +11,12 @@ Lane (2025). The moment is here: a generalised class of estimators for fuzzy reg
 Install the R development version from GitHub:
 ```r
 # install.packages("devtools")
-devtools::install_github("stuart-lane/lambda_class", subdir="R")
+devtools::install_github("stuart-lane/lambdaFRD", subdir="R")
 ```
 ### Python
 Install the python development version from GitHub:
 ```python
-pip install git+https://github.com/stuart-lane/lambda_class.git#subdirectory=Python
+pip install git+https://github.com/stuart-lane/lambdaFRD.git#subdirectory=Python
 ```
 Alternatively, simply download the functions, save them in to the appropriate directory and directly work with the functions themselves.
 
