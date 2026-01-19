@@ -14,9 +14,6 @@ def ensure_package(pkg_name):
 # Standard packages
 import numpy as np
 import pandas as pd
-from scipy.linalg import sqrtm
-from scipy import stats
-from typing import Optional
 rdrobust_module = ensure_package("rdrobust")
 rdbwselect = rdrobust_module.rdbwselect
 rdrobust = rdrobust_module.rdrobust
@@ -26,9 +23,9 @@ APPLICATION SPECIFIC FUNCTIONS
 """
 
 def print_output(
-        estimator: pd.Series, 
-        label: str
-    ) -> None:
+    estimator: pd.Series, 
+    label: str
+) -> None:
 
     """Print formatted output"""
     estimator_result = f"{label}: {estimator['tau_lambda']:.2f}"
@@ -56,13 +53,13 @@ if not compute_function:
 
 
 def rdrobust_estimation_inference(
-        Y: np.ndarray, 
-        X: np.ndarray, 
-        cutoff: float,  
-        D: np.ndarray,
-        bandwidth: float,
-        W: np.ndarray = None
-    ) -> tuple:
+    Y: np.ndarray, 
+    X: np.ndarray, 
+    cutoff: float,  
+    D: np.ndarray,
+    bandwidth: float,
+    W: np.ndarray = None
+) -> tuple:
 
     """Compute standard estimator and bias-corrected confidence interval"""
     bw = rdrobust(
@@ -94,18 +91,21 @@ def rdrobust_estimation_inference(
 
 
 def format_rdrobust_results(
-        estimator: float,
-        ci_lower: float, 
-        ci_upper: float, 
-        label: str
-    ) -> tuple:
+    estimator: float,
+    ci_lower: float, 
+    ci_upper: float, 
+    label: str
+) -> tuple:
     
     """Format output from rdrobust package"""
     ci = f"CI: [{ci_lower:.2f}, {ci_upper:.2f}]"
     print(f"{label}: {estimator:.2f}, {ci}")
 
 
-def standardise(data):
+def standardise(
+    data: float
+) -> float:
+
     """Manually standardize data (mean=0, std=1)"""
     mean = np.mean(data)
     std = np.std(data, ddof=1)  # ddof=1 for sample std

@@ -5,7 +5,7 @@ import sys
 import os
 
 from application_utils import *
-from lambda_class_functions import *
+from lambdaFRD import *
 
 def ensure_package(pkg_name):
     """Utility function to ensure package is installed"""
@@ -34,7 +34,7 @@ OUTPUT_DESTINATION = os.path.join(SCRIPT_DIR, "output/anglavy99_output.csv")
 DATA_FILE = os.path.join(SCRIPT_DIR, "final4.csv")
 
 """
-DATA SETUUP
+DATA SETUP
 """
 tests = ["verb", "math"]
 cutoffs = [40, 80, 120]
@@ -52,10 +52,10 @@ results_dataframe_columns = [
     "lambda_1_CI_lower", "lambda_1_CI_upper",
     "lambda_4_CI_lower", "lambda_4_CI_upper"
 ]
-"""
-MAIN ANALYSIS LOOP
-"""
 
+"""
+MAIN LOOP
+"""
 def main():
 
     if SAVE_OUTPUT_TO_CSV:
@@ -100,12 +100,15 @@ def main():
                 W = filtered_sample['tipuach'].to_numpy().astype(float)
 
                 # Compute estimators and confidence intervals
-                iv_results = lambda_class(Y, D, X, x0 = cutoff, bandwidth = bandwidth, exog = W, kernel="uniform", p=1,
-                                        Lambda=True, psi=0, tau_0=0, inference=True, vcov_type="robust")
-                lambda_1_results = lambda_class(Y, D, X, x0 = cutoff, bandwidth = bandwidth, exog = W, kernel="uniform", p=1,
-                                                Lambda=True, psi=1, tau_0=0, inference=True, vcov_type="robust")
-                lambda_4_results = lambda_class(Y, D, X, x0 = cutoff, bandwidth = bandwidth, exog = W, kernel="uniform", p=1,
-                                                Lambda=True, psi=4, tau_0=0, inference=True, vcov_type="robust")
+                iv_results = lambdaFRD(Y, D, X, x0 = cutoff, bandwidth = bandwidth, exog = W, kernel="uniform", p=1,
+                                       Lambda=True, psi=0, tau_0=0, inference=True, vcov_type="robust")
+                
+                lambda_1_results = lambdaFRD(Y, D, X, x0 = cutoff, bandwidth = bandwidth, exog = W, kernel="uniform", p=1,
+                                             Lambda=True, psi=1, tau_0=0, inference=True, vcov_type="robust")
+                
+                lambda_4_results = lambdaFRD(Y, D, X, x0 = cutoff, bandwidth = bandwidth, exog = W, kernel="uniform", p=1,
+                                             Lambda=True, psi=4, tau_0=0, inference=True, vcov_type="robust")
+                
                 rdrobust_results = rdrobust_estimation_inference(Y, X, cutoff, D, bandwidth, W)
                 
                 # Print output
