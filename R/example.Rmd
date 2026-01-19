@@ -8,7 +8,7 @@ University of Bristol
 
 ### Introduction
 
-This document shows an example usage of the `lambda_class` function to replicate
+This document shows an example usage of the `lambdaFRD` function to replicate
 the empirical results of Lane (2025). I will be looking at class size effects on
 test scores using the Angrist and Lavy (1999) dataset. This looks at verb and math
 scores for 4th and 5th grade students in Israel, where class sizes are determined
@@ -28,16 +28,11 @@ for (package in packages) {
 }
 ```
 
-``` {r echo=FALSE}
-## Set working directory -------------------------------------------------------
-setwd("C:/Users/sl14120/OneDrive - University of Bristol/PostDoc/LocalFullerFRD/GITHUB")
-```
-
-and the new `lambda_class` function. (A full package is in development, but as an intermediate step, the easiest temporary usage of the function is probably to download the `lambda_class_function.R` file and save in the appropriate directory).
+and the new `lambdaFRD` function. (A full package is in development, but as an intermediate step, the easiest temporary usage of the function is probably to download the `lambdaFRD.R` file and save in the appropriate directory).
 
 ``` {r echo=TRUE}
 # New function for FRD estimation
-source("./lambda_class_function.R")
+source("./lambdaFRD.R")
 
 # or download the function directly from Github and save in directory
 # devtools::install_github("stuart_lane/lambda_class", subdir="R")
@@ -74,7 +69,7 @@ n <- nrow(filtered_data)                 # Number of observations in effective s
 ### Compute lambda class estimator
 
 ``` {r echo=TRUE, inlude=TRUE}
-lambda_estimate <- lambda_class(
+lambda_estimate <- lambdaFRD(
   Y = Y,                     # Outcome vector
   D = D,                     # Treatment vector
   X = X,                     # Running variable vector
@@ -104,7 +99,7 @@ cat("lambda est:", round(lambda_coeff, 2), "[", round(lambda_CI_lower, 2),
 ```
 
 ``` {r echo=FALSE, inlude=FALSE}
-lambda_1_estimate <- lambda_class(
+lambda_1_estimate <- lambdaFRD(
   Y = Y,                     # Outcome vector
   D = D,                     # Treatment vector
   X = X,                     # Running variable vector
@@ -137,7 +132,7 @@ cat("lambda est (psi=1):", round(lambda_1_coeff, 2), "[", round(lambda_1_CI_lowe
 ### Replicating the standard FRD estimator:
 
 ``` {r echo=TRUE, inlude=TRUE}
-FRD_estimate <- lambda_class(
+FRD_estimate <- lambdaFRD(
   Y = Y,                     # Outcome vector
   D = D,                     # Treatment vector
   X = X,                     # Running variable vector
