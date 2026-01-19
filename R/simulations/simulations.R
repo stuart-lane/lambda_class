@@ -2,7 +2,7 @@
 ### SETUP
 ### ============================================================================
 
-packages <- c("parallel", "doParallel", "foreach", "progress", "MASS",
+packages <- c("parallel", "doParallel", "foreach", "progress", "MASS", "FRD",
               "triangle", "expm",  "dplyr", "haven", "rdrobust", "RDHonest")
 
 for (package in packages) {
@@ -11,6 +11,7 @@ for (package in packages) {
   }
   library(package, character.only = TRUE)
 }
+
 
 ### ============================================================================
 ### USER CONFIGURATION/CUSTOMISATION
@@ -22,9 +23,9 @@ readRenviron(".Renviron")
 workdir <- Sys.getenv(SIMULATIONS_WORKDIR)
 setwd(workdir)
 
-csv_folder <- "output/"
+CSV_FOLDER <- "output_final/"
 
-source("../lambda_class_function.R")
+source("../lambdaFRD.R")
 source("./simulation_utils.R")
 
 ### ============================================================================
@@ -35,7 +36,6 @@ result_index <- 1
 
 x0 = 0
 nsim = 10000
-n = 500
 
 coeffscont_lee <- matrix(c(0.48, 1.27, 7.18, 20.21, 21.54, 7.33), ncol = 1)
 coeffstreat_lee <- matrix(c(0.52, 0.84, -3, 7.99, -9.01, 3.56), ncol = 1)
@@ -45,11 +45,6 @@ coeffstreat_lm <- matrix(c(0.26, 18.49, -54.8, 74.3, -45.02, 9.83), ncol = 1)
 ### ============================================================================
 ### DATA FRAME CONFIGURATION
 ### ============================================================================
-
-dgps = c(1, 2)
-running_variables = c(1, 2, 3)
-setups = c(1, 2, 3)
-p1_values = c(0.6, 0.7, 0.8, 0.9)
 
 total_combinations <- length(running_variables) * length(setups) * length(p1_values) * length(dgps)
 
@@ -62,14 +57,6 @@ results_df <- data.frame(
   p1 = numeric(total_combinations),
   n = numeric(total_combinations),
   true_treatment_effect = numeric(total_combinations),
-  
-  ## Bias
-  bias_iv_ccf = numeric(total_combinations),
-  bias_iv_ik = numeric(total_combinations),
-  bias_lambda_1_ccf = numeric(total_combinations),
-  bias_lambda_1_ik = numeric(total_combinations),
-  bias_lambda_4_ccf = numeric(total_combinations),
-  bias_lambda_4_ik = numeric(total_combinations),
   
   ## Median bias
   median_bias_iv_ccf = numeric(total_combinations),
@@ -102,22 +89,8 @@ results_df <- data.frame(
   cov_lambda_1_ik = numeric(total_combinations),
   cov_lambda_4_ccf = numeric(total_combinations),
   cov_lambda_4_ik = numeric(total_combinations),
-  cov_ar_ba_1 = numeric(total_combinations),
   cov_ar_ba_2 = numeric(total_combinations),
-  cov_honest_1 = numeric(total_combinations),  
-  cov_honest_2 = numeric(total_combinations),  
-  
-  ## Confidence interval length
-  len_iv_ccf = numeric(total_combinations),
-  len_iv_ik = numeric(total_combinations),
-  len_lambda_1_ccf = numeric(total_combinations),
-  len_lambda_1_ik = numeric(total_combinations),
-  len_lambda_4_ccf = numeric(total_combinations),
-  len_lambda_4_ik = numeric(total_combinations),
-  len_ar_ba_1 = numeric(total_combinations),
-  len_ar_ba_2 = numeric(total_combinations),
-  len_honest_1 = numeric(total_combinations),  
-  len_honest_2 = numeric(total_combinations)  
+  cov_honest_2 = numeric(total_combinations)
 )
 
 ### ============================================================================
@@ -131,7 +104,7 @@ parallelise_simulation <- function(
     p1_values = c(0.6, 0.7, 0.8, 0.9),
     ns = c(300, 600)
 ) {
-  dir.create(csv_folder, showWarnings = FALSE, recursive = TRUE)
+  dir.create(CSV_FOLDER, showWarnings = FALSE, recursive = TRUE)
   
   ## Setup parallel processing -------------------------------------------------
   cat("\n----- New Simulation Started -----\n")
@@ -156,8 +129,8 @@ parallelise_simulation <- function(
       combinations <- expand.grid(
         dgp = dgp,                  
         running_variable = running_variable,
-        setup = setups,               
         p1 = p1_values,               
+        setup = setups,    
         n = ns                        
       )
       
@@ -170,10 +143,10 @@ parallelise_simulation <- function(
       
       clusterExport(cl, c(
         "generate_rdd_data", "calculate_true_parameters",
-        "calculate_ROT1", "calculate_ROT2", "lambda_class",
+        "calculate_ROT1", "calculate_ROT2", "lambdaFRD",
         "coeffscont_lee", "coeffstreat_lee",
         "coeffscont_lm", "coeffstreat_lm",
-        "x0", "nsim", "csv_folder"
+        "x0", "nsim", "CSV_FOLDER"
       ))
       
       clusterEvalQ(cl, {
@@ -203,6 +176,13 @@ parallelise_simulation <- function(
         M_true <- true_params$M_true
         
         true_treatment_effect <- ifelse(dgp == 1, -3.44, 0.04)
+        M_true <- calculate_true_parameters(dgp, setup)
+        if (dgp == 1) {
+          tau_grid <- seq(-18.44, 12.56, length.out = 50)
+        } else if (dgp == 2) {
+          tau_grid <- seq(-4.96, 5.04, length.out = 50)
+        }
+        idx_true <- which.min(abs(tau_grid - true_treatment_effect))
         
         running_variable_label <- switch(
           as.character(running_variable),
@@ -224,20 +204,8 @@ parallelise_simulation <- function(
         coverage_lambda_1_ik <- numeric(nsim)
         coverage_lambda_4_ik <- numeric(nsim) 
         coverage_lambda_4_ccf <- numeric(nsim)
-        coverage_ar_ba_1 <- numeric(nsim)
         coverage_ar_ba_2 <- numeric(nsim)
-        coverage_honest_1 <- numeric(nsim)
         coverage_honest_2 <- numeric(nsim)
-        length_iv_ccf <- numeric(nsim)
-        length_iv_ik <- numeric(nsim)
-        length_lambda_1_ccf <- numeric(nsim)
-        length_lambda_1_ik <- numeric(nsim)
-        length_lambda_4_ik <- numeric(nsim)
-        length_lambda_4_ccf <- numeric(nsim)
-        length_ar_ba_1 <- numeric(nsim)
-        length_ar_ba_2 <- numeric(nsim)
-        length_honest_1 <- numeric(nsim)
-        length_honest_2 <- numeric(nsim)
         
         iter_seeds <- numeric(nsim)
         
@@ -280,60 +248,52 @@ parallelise_simulation <- function(
             ## =================================================================
             
             ## Lambda 1 estimator with mse optimal bandwidth -------------------
-            result_lambda_1_ik <- lambda_class(
+            result_lambda_1_ik <- lambdaFRD(
               Y = sim_data$y, D = sim_data$D, X = sim_data$x, x0 = x0, exog = NULL,
               bandwidth = ik_bw, Lambda = TRUE, psi = 1,  lambda = NULL, 
-              tau_0 = true_treatment_effect, p = 1, kernel = "triangular", cluster = NULL,
+              tau_0 = true_treatment_effect, p = 1, kernel = "uniform",
               robust = FALSE, alpha = 0.05
             )
             
-            results_lambda_1_ik[i] <- result_lambda_1_ik$tau_est
+            results_lambda_1_ik[i] <- result_lambda_1_ik$tau_lambda
             coverage_lambda_1_ik[i] <- as.numeric(1 - result_lambda_1_ik$reject_t)
-            length_lambda_1_ik[i] <- as.numeric(result_lambda_1_ik$ci_upper -
-                                                  result_lambda_1_ik$ci_lower)
             
             ## Lambda 1 estimator with coverage optimal bandwidth --------------
-            result_lambda_1_ccf <- lambda_class(
+            result_lambda_1_ccf <- lambdaFRD(
               Y = sim_data$y, D = sim_data$D, X = sim_data$x, x0 = 0, exog = NULL,
               bandwidth = ccf_bw, Lambda = TRUE, psi = 1, lambda = NULL, 
-              tau_0 = true_treatment_effect, p = 1, kernel = "triangular", cluster = NULL,
+              tau_0 = true_treatment_effect, p = 1, kernel = "uniform",
               robust = FALSE, alpha = 0.05
             )
             
-            results_lambda_1_ccf[i] <- result_lambda_1_ccf$tau_est
+            results_lambda_1_ccf[i] <- result_lambda_1_ccf$tau_lambda
             coverage_lambda_1_ccf[i] <- as.numeric(1 - result_lambda_1_ccf$reject_t)
-            length_lambda_1_ccf[i] <-  as.numeric(result_lambda_1_ccf$ci_upper -
-                                                    result_lambda_1_ccf$ci_lower) 
             
             ## =================================================================
             ## LAMBDA CLASS ESTIMATOR WITH λ = Λ(4)
             ## =================================================================
             
             ## Lambda 4 estimator with mse optimal bandwidth -------------------
-            result_lambda_4_ik <- lambda_class(
+            result_lambda_4_ik <- lambdaFRD(
               Y = sim_data$y, D = sim_data$D, X = sim_data$x, x0 = 0, exog = NULL,
               bandwidth = ik_bw, Lambda = TRUE, psi = 4, lambda = NULL, 
-              tau_0 = true_treatment_effect, p = 1, kernel = "triangular", cluster = NULL,
+              tau_0 = true_treatment_effect, p = 1, kernel = "uniform",
               robust = FALSE, alpha = 0.05
             )
             
-            results_lambda_4_ik[i] <- result_lambda_4_ik$tau_est
+            results_lambda_4_ik[i] <- result_lambda_4_ik$tau_lambda
             coverage_lambda_4_ik[i] <- as.numeric(1 -result_lambda_4_ik$reject_t)
-            length_lambda_4_ik[i] <-  as.numeric(result_lambda_4_ik$ci_upper -
-                                                   result_lambda_4_ik$ci_lower) 
             
             ## Lambda 1 estimator with cov optimal bandwidth -------------------
-            result_lambda_4_ccf <- lambda_class(
+            result_lambda_4_ccf <- lambdaFRD(
               Y = sim_data$y, D = sim_data$D, X = sim_data$x, x0 = 0, exog = NULL,
               bandwidth = ccf_bw, Lambda = TRUE, psi = 4,  lambda = NULL, 
-              tau_0 = true_treatment_effect, p = 1, kernel = "triangular", cluster = NULL,
+              tau_0 = true_treatment_effect, p = 1, kernel = "uniform",
               robust = FALSE, alpha = 0.05
             )
             
-            results_lambda_4_ccf[i] <- result_lambda_4_ccf$tau_est
+            results_lambda_4_ccf[i] <- result_lambda_4_ccf$tau_lambda
             coverage_lambda_4_ccf[i] <- as.numeric(1 - result_lambda_4_ccf$reject_t)
-            length_lambda_4_ccf[i] <-  as.numeric(result_lambda_4_ccf$ci_upper -
-                                                    result_lambda_4_ccf$ci_lower) 
             
             ## =================================================================
             ## RD ROBUST CONFIDENCE INTERVALS
@@ -349,7 +309,6 @@ parallelise_simulation <- function(
             ci_upper_iv_ccf <- rd_result_ccf$ci[3,2]
             coverage_iv_ccf[i] <- as.numeric(true_treatment_effect >= ci_lower_iv_ccf &
                                                true_treatment_effect <= ci_upper_iv_ccf)
-            length_iv_ccf[i] <- as.numeric(ci_upper_iv_ccf - ci_lower_iv_ccf)
 
             ## FRD estimator with Imbens-Kalyanaraman bandwidth ----------------
             rd_result_ik <- rdrobust(y = sim_data$y, x = sim_data$x,
@@ -361,7 +320,6 @@ parallelise_simulation <- function(
             ci_upper_iv_ik <- rd_result_ik$ci[3,2]
             coverage_iv_ik[i] <- as.numeric(true_treatment_effect >= ci_lower_iv_ik &
                                               true_treatment_effect <= ci_upper_iv_ik)
-            length_iv_ik[i] <- as.numeric(ci_upper_iv_ik - ci_lower_iv_ik)
 
             ## =================================================================
             ## BIAS AWARE CONFIDENCE INTERVALS
@@ -383,43 +341,22 @@ parallelise_simulation <- function(
               X = d$X
             )
 
-            ## AR1 -------------------------------------------------------------
-            reg_ar_1 <- suppressMessages(try({
-              RDHonest(Y ~ X,
-                       data = df_transformed,
-                       M = M_rot1[1] + abs(true_treatment_effect) * M_rot1[2],
-                       cutoff = 0,
-                       kern = "triangular",
-                       sclass = "H",
-                       opt.criterion = "FLCI")
-            }, silent = TRUE))
-
-            if (!inherits(reg_ar_1, "try-error")) {
-              ar_ccf_coverage <- as.numeric((0 >= reg_ar_1$coef$conf.low) &
-                                              (0 <= reg_ar_1$coef$conf.high))
-              ar_ccf_bandwidth <- reg_ar_1$coef$bandwidth
-            } else {
-              ar_ccf_coverage <- NA
-              ar_ccf_bandwidth <- NA
-            }
-
-            coverage_ar_ba_1[i] <- ar_ccf_coverage
-            length_ar_ba_1[i] <- as.numeric(reg_ar_1$coef$conf.high - reg_ar_1$coef$conf.low)
-
-            ## AR2 -------------------------------------------------------------
+            ## AR2 -----------------------------------------------------------------
             reg_ar_2 <- suppressMessages(try({
-              RDHonest(Y ~ X,
-                       data = df_transformed,
-                       M = M_rot2[1] + abs(true_treatment_effect) * M_rot2[2],
-                       cutoff = 0,
-                       kern = "triangular",
-                       sclass = "H",
-                       opt.criterion = "FLCI")
+              RDHonest(
+                Y ~ X,
+                data = df_transformed,
+                M = M_rot2[1] + abs(true_treatment_effect) * M_rot2[2],
+                cutoff = 0,
+                kern = "triangular",
+                sclass = "H",
+                opt.criterion = "FLCI"
+              )
             }, silent = TRUE))
 
             if (!inherits(reg_ar_2, "try-error")) {
               ar_2_coverage <- as.numeric((0 >= reg_ar_2$coef$conf.low) &
-                                            (0 <= reg_ar_2$coef$conf.high))
+                                          (0 <= reg_ar_2$coef$conf.high))
               ar_2_bandwidth <- reg_ar_2$coef$bandwidth
             } else {
               ar_2_coverage <- NA
@@ -427,45 +364,27 @@ parallelise_simulation <- function(
             }
 
             coverage_ar_ba_2[i] <- ar_2_coverage
-            length_ar_ba_2[i] <- as.numeric(reg_ar_2$coef$conf.high - reg_ar_2$coef$conf.low)
+            
 
-            ## =================================================================
+            ## =====================================================================
             ## HONEST CONFIDENCE INTERVALS
-            ## =================================================================
-
-            ## Honest confidence interval 1 ------------------------------------
-            frd_result <- suppressMessages(try({RDHonest(
-              y | D ~ X,
-              data = df,
-              kern = "triangular",
-              M = abs(M_rot1),
-              sclass = "H",
-              opt.criterion = "FLCI")
+            ## =====================================================================
+          
+            # Honest confidence interval 2 ----------------------------------------
+            frd_result <- suppressMessages(try({
+              RDHonest(
+                y | D ~ X,
+                data = df,
+                kern = "triangular",
+                M = abs(M_rot2),
+                sclass = "H",
+                opt.criterion = "FLCI"
+              )
             }, silent = TRUE))
 
             summary <- frd_result$coefficients
-            ci_lower_honest_1 <- summary$conf.low
-            ci_upper_honest_1 <- summary$conf.high
-            coverage_honest_1[i] <- as.numeric(true_treatment_effect >= ci_lower_honest_1 &
-                                                 true_treatment_effect <= ci_upper_honest_1)
-            length_honest_1[i] <- as.numeric(ci_upper_honest_1 - ci_lower_honest_1)
-
-            ## Honest confidence interval 2 ------------------------------------
-            frd_result <- suppressMessages(try({RDHonest(
-              y | D ~ X,
-              data = df,
-              kern = "triangular",
-              M = abs(M_rot2),
-              sclass = "H",
-              opt.criterion = "FLCI")
-            }, silent = TRUE))
-
-            summary <- frd_result$coefficients
-            ci_lower_honest_2 <- summary$conf.low
-            ci_upper_honest_2 <- summary$conf.high
-            coverage_honest_2[i] <- as.numeric(true_treatment_effect >= ci_lower_honest_2 &
-                                                 true_treatment_effect <= ci_upper_honest_2)
-            length_honest_2[i] <- as.numeric(ci_upper_honest_2 - ci_lower_honest_2)
+            coverage_honest_2[i] <- as.numeric(true_treatment_effect >= summary$conf.low &
+                                                 true_treatment_effect <= summary$conf.high)
             
           }, error = function(e) {
             warning(paste("Error in simulation iteration:", e$message))
@@ -476,14 +395,7 @@ parallelise_simulation <- function(
         ## COMPUTE SUMMARY STATISTICS FOR PARAMETER CONFIGURATION 
         ## =====================================================================
         
-        # Calculate Bias
-        bias_iv_ik <- mean(results_iv_ik - true_treatment_effect)
-        bias_iv_ccf <- mean(results_iv_ccf - true_treatment_effect)
-        bias_lambda_1_ik <- mean(results_lambda_1_ik - true_treatment_effect)
-        bias_lambda_1_ccf <- mean(results_lambda_1_ccf - true_treatment_effect)
-        bias_lambda_4_ik <- mean(results_lambda_4_ik - true_treatment_effect)
-        bias_lambda_4_ccf <- mean(results_lambda_4_ccf - true_treatment_effect)
-        
+        # Calculate Median Bias
         median_bias_iv_ik <- median(results_iv_ik - true_treatment_effect)
         median_bias_iv_ccf <- median(results_iv_ccf - true_treatment_effect)
         median_bias_lambda_1_ik <- median(results_lambda_1_ik - true_treatment_effect)
@@ -514,22 +426,8 @@ parallelise_simulation <- function(
         cov_lambda_1_ccf <- mean(coverage_lambda_1_ccf)
         cov_lambda_4_ik <- mean(coverage_lambda_4_ik)
         cov_lambda_4_ccf <- mean(coverage_lambda_4_ccf)
-        cov_ar_ba_1 <- mean(coverage_ar_ba_1)
         cov_ar_ba_2 <- mean(coverage_ar_ba_2)
-        cov_honest_1 <- mean(coverage_honest_1)
         cov_honest_2 <- mean(coverage_honest_2)
-        
-        # Calculate Average CI Lengths
-        len_iv_ik <- mean(length_iv_ik)
-        len_iv_ccf <- mean(length_iv_ccf)
-        len_lambda_1_ik <- mean(length_lambda_1_ik)
-        len_lambda_1_ccf <- mean(length_lambda_1_ccf)
-        len_lambda_4_ik <- mean(length_lambda_4_ik)
-        len_lambda_4_ccf <- mean(length_lambda_4_ccf)
-        len_ar_ba_1 <- mean(length_ar_ba_1)
-        len_ar_ba_2 <- mean(length_ar_ba_2)
-        len_honest_1 <- mean(length_honest_1)
-        len_honest_2 <- mean(length_honest_2)
         
         # Add metrics to the results dataframe
         data.frame(
@@ -540,14 +438,6 @@ parallelise_simulation <- function(
           p1 = p1,
           n = n,
           true_treatment_effect = true_treatment_effect,
-          
-          # Store bias
-          bias_iv_ccf = bias_iv_ccf,
-          bias_iv_ik = bias_iv_ik,
-          bias_lambda_1_ccf = bias_lambda_1_ccf,
-          bias_lambda_1_ik = bias_lambda_1_ik,
-          bias_lambda_4_ccf = bias_lambda_4_ccf,
-          bias_lambda_4_ik = bias_lambda_4_ik,
           
           # Store median bias
           median_bias_iv_ccf = median_bias_iv_ccf,
@@ -580,22 +470,8 @@ parallelise_simulation <- function(
           cov_lambda_1_ik = cov_lambda_1_ik,
           cov_lambda_4_ccf = cov_lambda_4_ccf,
           cov_lambda_4_ik = cov_lambda_4_ik,
-          cov_ar_ba_1 = cov_ar_ba_1,
           cov_ar_ba_2 = cov_ar_ba_2,
-          cov_honest_1 = cov_honest_1,
-          cov_honest_2 = cov_honest_2,
-          
-          # Store empirical length
-          len_iv_ccf = len_iv_ccf,
-          len_iv_ik = len_iv_ik,
-          len_lambda_1_ccf = len_lambda_1_ccf,
-          len_lambda_1_ik = len_lambda_1_ik,
-          len_lambda_4_ccf = len_lambda_4_ccf,
-          len_lambda_4_ik = len_lambda_4_ik,
-          len_ar_ba_1 = len_ar_ba_1,
-          len_ar_ba_2 = len_ar_ba_2,
-          len_honest_1 = len_honest_1,
-          len_honest_2 = len_honest_2
+          cov_honest_2 = cov_honest_2
         )
       }
       
@@ -615,7 +491,7 @@ parallelise_simulation <- function(
       
       filename <- paste0("simulation_results_dgp", dgp, 
                          "_rv", running_var_label, ".csv")
-      filepath <- file.path(csv_folder, filename)
+      filepath <- file.path(CSV_FOLDER, filename)
       
       write.csv(final_results_df, filepath, row.names = FALSE)
       
