@@ -2,7 +2,7 @@ LAMBDA-CLASS FRD ESTIMATOR - QUICK REFERENCE FOR PYTHON
 =======================================================
 
 BASIC CALL:
-  result = lambda_class(Y, D, X, x0, bandwidth, psi = 4, tau_0 = 0)
+  result = lambdaFRD(Y, D, X, x0, bandwidth, psi = 4, tau_0 = 0)
 
 PARAMETERS:
   Y         : Outcome (required)
@@ -46,17 +46,17 @@ RECOMMENDED SETTINGS:
   ✓ Use robust = TRUE if heteroskedasticity suspected
 
 EXAMPLE:
-  result = lambda_class(
-              Y = outcomes, 
-              D = treatment, 
-              X = score, 
-              x0 = 10, 
-              bandwidth = 5, 
-              psi = 4,
-              tau_0 = 0,
-              robust = True,
-              alpha = 0.05
-            )
+  result <- lambdaFRD(
+      Y = outcomes, 
+      D = treatment, 
+      X = score, 
+      x0 = 10, 
+      bandwidth = 5, 
+      psi = 4,
+      tau_0 = 0,
+      robust = True,
+      lpha = 0.05
+  )
 
 print(f"Effect: {result['tau_lambda']:.2f} "
       f"[{result['ci_lower']:.2f}, {result['ci_upper']:.2f}]")
